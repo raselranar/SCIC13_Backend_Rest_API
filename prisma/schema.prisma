@@ -5,7 +5,7 @@
 
 generator client {
   provider = "prisma-client"
-  output   = "../generated/prisma"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -21,5 +21,83 @@ model User {
   id    String  @id @default(uuid()) 
   email String  @unique
   name  String
-  roles Role[]  @default([USER])
+  password String 
+  roles Role  @default(USER)
+  @@map("user")
+  orders Order[]
 } 
+
+enum ProductCategory {
+  ELECTRONICS
+  CLOTHING
+  BOOKS
+  HOME
+  SPORTS
+  TOYS
+}
+
+
+
+model Category {
+  id          String     @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  products    Product[]
+
+  @@map("category")
+}
+
+model Product {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  price       Int
+  stock       Int  @default(0)
+  type        ProductCategory
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+  orderItems  OrderItem[]
+  isDeleted   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("product")
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  COMPLETED
+  CANCELLED
+}
+
+model Order {
+  id              String       @id @default(uuid())
+  userId          String
+  user User @relation(fields: [userId], references: [id])
+  status          OrderStatus  @default(PENDING)
+  totalAmount     Int
+  shippingAddress String?
+  isDeleted       Boolean      @default(false)
+  placedAt        DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  items           OrderItem[]
+
+  @@map("order")
+}
+
+model OrderItem {
+  id         String   @id @default(uuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id])
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  quantity   Int      @default(1)
+  isDeleted  Boolean  @default(false)
+  unitPrice  Int
+
+  @@map("order_item")
+}
