@@ -17,18 +17,6 @@ export const Role = {
 export type Role = (typeof Role)[keyof typeof Role]
 
 
-export const ProductCategory = {
-  ELECTRONICS: 'ELECTRONICS',
-  CLOTHING: 'CLOTHING',
-  BOOKS: 'BOOKS',
-  HOME: 'HOME',
-  SPORTS: 'SPORTS',
-  TOYS: 'TOYS'
-} as const
-
-export type ProductCategory = (typeof ProductCategory)[keyof typeof ProductCategory]
-
-
 export const OrderStatus = {
   PENDING: 'PENDING',
   PROCESSING: 'PROCESSING',
