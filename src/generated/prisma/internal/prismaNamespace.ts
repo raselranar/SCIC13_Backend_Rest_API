@@ -835,6 +835,9 @@ export const UserScalarFieldEnum = {
   email: 'email',
   name: 'name',
   password: 'password',
+  isDeleted: 'isDeleted',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
   roles: 'roles'
 } as const
 
@@ -844,7 +847,7 @@ export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof User
 export const CategoryScalarFieldEnum = {
   id: 'id',
   name: 'name',
-  description: 'description',
+  isDeleted: 'isDeleted',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -939,16 +942,9 @@ export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaMod
 
 
 /**
- * Reference to a field of type 'Role'
+ * Reference to a field of type 'Boolean'
  */
-export type EnumRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Role'>
-    
-
-
-/**
- * Reference to a field of type 'Role[]'
- */
-export type ListEnumRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Role[]'>
+export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -963,6 +959,20 @@ export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel
  * Reference to a field of type 'DateTime[]'
  */
 export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Role'
+ */
+export type EnumRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Role'>
+    
+
+
+/**
+ * Reference to a field of type 'Role[]'
+ */
+export type ListEnumRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Role[]'>
     
 
 
@@ -991,13 +1001,6 @@ export type EnumProductCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$
  * Reference to a field of type 'ProductCategory[]'
  */
 export type ListEnumProductCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProductCategory[]'>
-    
-
-
-/**
- * Reference to a field of type 'Boolean'
- */
-export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
