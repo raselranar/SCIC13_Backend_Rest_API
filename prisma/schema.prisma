@@ -18,15 +18,16 @@ enum Role {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
+  id        String     @id @default(uuid())
+  email     String     @unique
   name      String
   password  String
-  isDeleted Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-  roles     Role     @default(USER)
+  isDeleted Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @default(now()) @updatedAt
+  roles     Role       @default(USER)
   orders    Order[]
+  cartItems CartItem[]
 
   @@map("user")
 }
@@ -54,6 +55,7 @@ model Product {
   isDeleted   Boolean     @default(false)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+  cartItems   CartItem[]
 
   @@map("product")
 }
@@ -64,6 +66,20 @@ enum OrderStatus {
   SHIPPED
   COMPLETED
   CANCELLED
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  quantity  Int      @default(1)
+  user      User     @relation(fields: [userId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, productId])
+  @@map("cart_items")
 }
 
 model Order {
@@ -91,5 +107,6 @@ model OrderItem {
   isDeleted Boolean @default(false)
   unitPrice Int
 
+  @@unique([orderId, productId])
   @@map("order_item")
 }
