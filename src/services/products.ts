@@ -1,13 +1,13 @@
-import { Router } from "express";
+import { Request, Router } from "express";
 import { prisma } from "../lib/prisma";
 
 const productRouter = Router();
 // add new product
-productRouter.post("/", async (req, res) => {
+productRouter.post("/", async (req: Request, res) => {
     try {
         const { name, description, price, stock, categoryId } = req.body;
         console.log("Received product data:", { name, description, price, stock, categoryId });
-        if (!name || !price || !categoryId || !stock) {
+        if (!name || typeof price === "undefined" || price === null || !categoryId || typeof stock === "undefined" || stock === null) {
             return res.status(400).json({
                 success: false,
                 message: "Missing required fields",

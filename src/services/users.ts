@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { hashPassword } from "../lib/passwordHash";
+import { authenticate, authorize } from "../middleware/auth";
 
 const userRouter = Router();
 
@@ -17,7 +18,17 @@ userRouter.post("/", async (req, res) => {
         }
         const passwordHash = await hashPassword(password);
 
-        const data = await prisma.user.create({ data: { name, email, password: passwordHash, role: "USER" } });
+        const data = await prisma.user.create({
+            data: { name, email, password: passwordHash, role: "USER" },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+        });
         res.json({
             success: true,
             message: "User created successfully",
@@ -26,7 +37,7 @@ userRouter.post("/", async (req, res) => {
     } catch (error: any) {
         console.error("Error creating user:", error);
         // handle duplicate email error
-        if (error.code === "P2002" && error.meta?.target?.includes("email")) {
+        if (error.code === "P2002") {
             return res.status(400).json({
                 success: false,
                 message: "Email already exists",
@@ -121,7 +132,7 @@ userRouter.get("/:id", async (req, res) => {
 });
 
 //  update user by id
-userRouter.patch("/:id", async (req, res) => {
+userRouter.patch("/:id", authenticate, authorize("ADMIN"), async (req, res) => {
     try {
         const { id } = req.params as { id: string };
         const { name, email, password, role } = req.body;
@@ -177,7 +188,7 @@ userRouter.patch("/:id", async (req, res) => {
 });
 
 // delete user by id
-userRouter.delete("/:id", async (req, res) => {
+userRouter.delete("/:id", authenticate, authorize("ADMIN"), async (req, res) => {
     try {
         const { id } = req.params as { id: string };
 

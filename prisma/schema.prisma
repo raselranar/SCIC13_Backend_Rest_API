@@ -25,9 +25,10 @@ model User {
   isDeleted Boolean    @default(false)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @default(now()) @updatedAt
-  roles     Role       @default(USER)
-  orders    Order[]
-  cartItems CartItem[]
+  role          Role           @default(USER)
+  orders        Order[]
+  cartItems     CartItem[]
+  refreshTokens RefreshToken[]
 
   @@map("user")
 }
@@ -109,4 +110,16 @@ model OrderItem {
 
   @@unique([orderId, productId])
   @@map("order_item")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  @@map("refresh_token")
 }

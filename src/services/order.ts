@@ -103,7 +103,7 @@ orderRouter.post("/", async (req, res) => {
         });
 
         // Clear user's cart after successful order creation
-        if (!cartItems) {
+        if (!cartItems || cartItems.length === 0) {
             await prisma.cartItem.deleteMany({
                 where: { userId },
             });
@@ -131,12 +131,28 @@ orderRouter.get("/", async (req, res) => {
         if (userId) {
             orders = await prisma.order.findMany({
                 where: { userId, isDeleted: false },
-                include: { user: true },
+                include: {
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        },
+                    },
+                },
             });
         } else {
             orders = await prisma.order.findMany({
                 where: { isDeleted: false },
-                include: { user: true },
+                include: {
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        },
+                    },
+                },
             });
         }
         res.json({
@@ -158,7 +174,18 @@ orderRouter.get("/", async (req, res) => {
 orderRouter.get("/:id", async (req, res) => {
     try {
         const { id } = req.params;
-        const order = await prisma.order.findUnique({ where: { id, isDeleted: false }, include: { user: true } });
+        const order = await prisma.order.findUnique({
+            where: { id, isDeleted: false },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
+            },
+        });
         if (!order) {
             return res.status(404).json({
                 success: false,
@@ -179,12 +206,38 @@ orderRouter.get("/:id", async (req, res) => {
         });
     }
 });
+
+// get order items by order id
+orderRouter.get("/:id/items", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const orderItems = await prisma.orderItem.findMany({
+            where: { orderId: id },
+            include: { product: true },
+        });
+        res.json({
+            success: true,
+            message: "Order items retrieved successfully",
+            data: orderItems,
+        });
+    } catch (error: any) {
+        console.error("Error retrieving order items:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to retrieve order items",
+            error: error.message,
+        });
+    }
+});
 // update order by id
 orderRouter.patch('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { totalAmount, shippingAddress } = req.body;
-
+        const { totalAmount, shippingAddress, status } = req.body;
+        const validStatuses = ["PENDING", "PROCESSING", "SHIPPED", "COMPLETED", "CANCELLED"];
+        if (status !== undefined && !validStatuses.includes(status)) {
+            return res.status(400).json({ success: false, message: "Invalid order status" });
+        }
         const existing = await prisma.order.findUnique({ where: { id } });
         if (!existing || existing.isDeleted) {
             return res.status(404).json({ success: false, message: 'Order not found' });
@@ -196,11 +249,13 @@ orderRouter.patch('/:id', async (req, res) => {
                 // only update provided fields
                 ...(totalAmount !== undefined && { totalAmount }),
                 ...(shippingAddress !== undefined && { shippingAddress }),
+                ...(status !== undefined && { status }),
             },
         });
 
         res.json({ success: true, message: 'Order updated successfully', data: updated });
     } catch (error: any) {
+
         console.error('Error updating order:', error);
         res.status(500).json({ success: false, message: 'Failed to update order', error: error.message });
     }

@@ -6,24 +6,34 @@ const categoryRouter = Router();
 // creating a new category
 categoryRouter.post("/", async (req, res) => {
     try {
-        const categoryData = req.body;
+        const { name } = req.body;
 
-
-        console.log("Received category data:", categoryData);
 
         // Validate required fields
-        if (!categoryData.name || categoryData.name.trim().length === 0) {
+        if (!name || name.trim().length === 0) {
             return res.status(400).json({
                 success: false,
                 message: "Category name is required",
             });
         }
 
+        // check name is already exist or not
+        if (name) {
+            const existingCategory = await prisma.category.findFirst({
+                where: { name: name.trim() },
+            });
 
 
+            if (existingCategory) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Category name already exists",
+                });
+            }
+        }
 
-        const data = await prisma.category.create({ data: { name: categoryData.name.trim() } });
-        res.status(201).json({
+
+        const data = await prisma.category.create({ data: { name: name.trim() } }); res.status(201).json({
             success: true,
             message: "Category created successfully",
             data: data,
@@ -62,14 +72,25 @@ categoryRouter.get("/", async (req, res) => {
 });
 
 // update category by id
-categoryRouter.put("/:id", async (req, res) => {
+categoryRouter.patch("/:id", async (req, res) => {
     try {
         const categoryId = req.params.id as string;
         const { name } = req.body;
 
         // Validate required fields
+        if (!categoryId || categoryId.trim().length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Category ID is required",
+            });
+        }
+        const existing = await prisma.category.findUnique({ where: { id: categoryId } });
+        if (!existing) {
+            return res.status(404).json({ success: false, message: "Category not found" });
+        }
+
         if (!name || name.trim().length === 0) {
-            return res.status(400).json({
+            return res.status(404).json({
                 success: false,
                 message: "Category name is required",
             });
@@ -92,7 +113,7 @@ categoryRouter.put("/:id", async (req, res) => {
 
 
         const data = await prisma.category.update({
-            where: { id: categoryId },
+            where: { id: categoryId, isDeleted: false },
             data: name ? { name: name.trim() } : {},
         });
 
@@ -102,6 +123,12 @@ categoryRouter.put("/:id", async (req, res) => {
             data: data,
         });
     } catch (error: any) {
+        if (error.code === "P2025") {
+            return res.status(404).json({
+                success: false,
+                message: "Category not found",
+            });
+        }
         console.error("Error updating category:", error);
         res.status(500).json({
             success: false,
@@ -117,6 +144,14 @@ categoryRouter.delete("/:id", async (req, res) => {
         const categoryId = req.params.id as string;
 
         const permanentDelete = req.query.permanent === "true";
+        // validate categoryId
+        if (!categoryId) {
+            return res.status(404).json({
+                success: false,
+                message: "Category ID is required",
+            });
+        }
+
 
         if (permanentDelete) {
             const data = await prisma.category.delete({
@@ -140,6 +175,12 @@ categoryRouter.delete("/:id", async (req, res) => {
         });
     }
     catch (error: any) {
+        if (error.code === "P2025") {
+            return res.status(404).json({
+                success: false,
+                message: "Category not found",
+            });
+        }
         console.error("Error deleting category:", error);
         res.status(500).json({
             success: false,
