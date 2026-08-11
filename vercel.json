@@ -1,11 +1,13 @@
 {
   "version": 2,
   "installCommand": "pnpm install",
-  "functions": {
-    "api/index.ts": {
-      "runtime": "@vercel/node@5.9.9"
+  "builds": [
+    {
+      "src": "api/index.ts",
+      "use": "@vercel/node",
+      "config": { "runtime": "@vercel/node@5.9.9" }
     }
-  },
+  ],
   "routes": [
     {
       "src": "/(.*)",
