@@ -16,7 +16,10 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@^11.20.0",
+  "packageManager": "pnpm@11.20.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "type": "module",
   "devDependencies": {
     "@types/cors": "^2.8.19",
