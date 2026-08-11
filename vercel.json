@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "installCommand": "pnpm install",
+  "installCommand": "corepack enable && corepack prepare pnpm@11.20.0 --activate && pnpm install",
   "builds": [
     {
       "src": "api/index.ts",
