@@ -6,14 +6,109 @@ const orderRouter = Router();
 // create order
 orderRouter.post("/", async (req, res) => {
     try {
-        const { userId, totalAmount, shippingAddress } = req.body;
+        const { userId, cartItems } = req.body;
+
+        if (!userId || cartItems === undefined) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing required fields: userId and cartItems are required.",
+            });
+        }
+        let itemsToOrder = cartItems;
+
+        if (!itemsToOrder || itemsToOrder.length === 0) {
+            // Fetch user's cart items if not provided
+            const userCart = await prisma.cartItem.findMany({
+                where: { userId },
+                include: { product: true },
+            });
+
+            if (userCart.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Cart is empty. Add items before creating order",
+                });
+            }
+
+            // Convert cart items to order items format
+            itemsToOrder = userCart.map((item: any) => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                price: item.product.price,
+            }));
+        }
+
+        // Validate and calculate total amount
+        let totalAmount = 0;
+        const validatedItems = [];
+
+        for (const item of itemsToOrder) {
+            if (!item.productId || !item.quantity || !item.price) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Each order item must have productId, quantity, and price",
+                });
+            }
+
+            // Verify product exists and has stock
+            const product = await prisma.product.findUnique({
+                where: { id: item.productId },
+            });
+
+            if (!product) {
+                return res.status(404).json({
+                    success: false,
+                    message: `Product not found: ${item.productId}`,
+                });
+            }
+
+            if (product.stock < item.quantity) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Insufficient stock for ${product.name}. Available: ${product.stock}`,
+                });
+            }
+
+            totalAmount += item.price * item.quantity;
+            validatedItems.push(item);
+        }
+
         const order = await prisma.order.create({
             data: {
                 userId,
-                totalAmount,
-                shippingAddress: shippingAddress || null,
+                totalAmount: parseFloat(totalAmount.toFixed(2)),
+                status: "PENDING",
+                orderItems: {
+                    create: validatedItems.map((item) => ({
+                        productId: item.productId,
+                        quantity: item.quantity,
+                        price: item.price,
+                    })),
+                },
+            },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
+                orderItems: {
+                    include: {
+                        product: true,
+                    },
+                },
             },
         });
+
+        // Clear user's cart after successful order creation
+        if (!cartItems) {
+            await prisma.cartItem.deleteMany({
+                where: { userId },
+            });
+        }
+
         res.json({
             success: true,
             message: "Order created successfully",
@@ -31,7 +126,19 @@ orderRouter.post("/", async (req, res) => {
 // get all orders
 orderRouter.get("/", async (req, res) => {
     try {
-        const orders = await prisma.order.findMany({ where: { isDeleted: false }, include: { user: true } });
+        const userId = req.query.userId as string | undefined;
+        let orders;
+        if (userId) {
+            orders = await prisma.order.findMany({
+                where: { userId, isDeleted: false },
+                include: { user: true },
+            });
+        } else {
+            orders = await prisma.order.findMany({
+                where: { isDeleted: false },
+                include: { user: true },
+            });
+        }
         res.json({
             success: true,
             message: "Orders retrieved successfully",
@@ -98,4 +205,29 @@ orderRouter.patch('/:id', async (req, res) => {
         res.status(500).json({ success: false, message: 'Failed to update order', error: error.message });
     }
 });
+
+// delete order by id
+orderRouter.delete('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const existing = await prisma.order.findUnique({ where: { id } });
+        if (!existing || existing.isDeleted) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        // Soft delete by setting isDeleted to true
+        await prisma.order.update({
+            where: { id },
+            data: { isDeleted: true },
+        });
+
+        res.json({ success: true, message: 'Order deleted successfully' });
+    } catch (error: any) {
+        console.error('Error deleting order:', error);
+        res.status(500).json({ success: false, message: 'Failed to delete order', error: error.message });
+    }
+});
+
+
 export default orderRouter;
