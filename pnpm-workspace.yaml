@@ -3,5 +3,10 @@ allowBuilds:
   esbuild: true
   prisma: true
 
+minimumReleaseAgeExclude:
+  - '@vercel/build-utils@14.0.5'
+  - '@vercel/node@5.9.9'
+  - '@vercel/python-analysis@0.13.2'
+
 packages:
   - 'src'

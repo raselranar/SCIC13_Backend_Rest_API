@@ -1,13 +1,14 @@
 {
   "version": 2,
+  "buildCommand": "node scripts/build-lambda.mjs",
   "builds": [
     {
-      "src": "api/index.ts",
+      "src": "api/index.js",
       "use": "@vercel/node",
       "config": { "runtime": "@vercel/node@5.9.9" }
     }
   ],
   "routes": [
-    { "src": "/(.*)", "dest": "/api/index.ts" }
+    { "src": "/(.*)", "dest": "/api/index.js" }
   ]
 }
