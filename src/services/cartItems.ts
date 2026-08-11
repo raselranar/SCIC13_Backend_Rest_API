@@ -68,7 +68,13 @@ cartItemRouter.post("/", async (req, res) => {
                 },
                 include: {
                     product: true,
-                    user: true,
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        },
+                    },
                 },
             });
         } else {
@@ -81,7 +87,13 @@ cartItemRouter.post("/", async (req, res) => {
                 },
                 include: {
                     product: true,
-                    user: true,
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        },
+                    },
                 },
             });
         }
@@ -199,7 +211,13 @@ cartItemRouter.patch("/:id", async (req, res) => {
             data: { quantity },
             include: {
                 product: true,
-                user: true,
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
             },
         });
 

@@ -109,6 +109,37 @@ orderRouter.post("/", async (req, res) => {
             });
         }
 
+        // Decrement stock for each ordered item (atomic, so two simultaneous
+        // orders cannot oversell)
+        const decrementedItems: { productId: string; quantity: number }[] = [];
+        for (const item of validatedItems) {
+            const updated = await prisma.product.updateMany({
+                where: { id: item.productId, stock: { gte: item.quantity } },
+                data: { stock: { decrement: item.quantity } },
+            });
+
+            if (updated.count === 0) {
+                // Stock dropped below quantity after the earlier check — roll back
+                // any stock already decremented and remove the created order.
+                for (const applied of decrementedItems) {
+                    await prisma.product.update({
+                        where: { id: applied.productId },
+                        data: { stock: { increment: applied.quantity } },
+                    });
+                }
+                await prisma.order.delete({
+                    where: { id: order.id },
+                    include: { orderItems: true },
+                });
+                return res.status(400).json({
+                    success: false,
+                    message: `Insufficient stock for one of the products. Available stock changed before the order completed`,
+                });
+            }
+
+            decrementedItems.push({ productId: item.productId, quantity: item.quantity });
+        }
+
         res.json({
             success: true,
             message: "Order created successfully",
@@ -253,6 +284,20 @@ orderRouter.patch('/:id', async (req, res) => {
             },
         });
 
+        // Restore stock if the order is being cancelled (only once)
+        if (status === "CANCELLED" && existing.status !== "CANCELLED") {
+            const items = await prisma.orderItem.findMany({
+                where: { orderId: id },
+                select: { productId: true, quantity: true },
+            });
+            for (const item of items) {
+                await prisma.product.update({
+                    where: { id: item.productId },
+                    data: { stock: { increment: item.quantity } },
+                });
+            }
+        }
+
         res.json({ success: true, message: 'Order updated successfully', data: updated });
     } catch (error: any) {
 
@@ -276,6 +321,21 @@ orderRouter.delete('/:id', async (req, res) => {
             where: { id },
             data: { isDeleted: true },
         });
+
+        // Restore stock (unless the order was already cancelled, in which case
+        // stock was restored at cancellation time)
+        if (existing.status !== "CANCELLED") {
+            const items = await prisma.orderItem.findMany({
+                where: { orderId: id },
+                select: { productId: true, quantity: true },
+            });
+            for (const item of items) {
+                await prisma.product.update({
+                    where: { id: item.productId },
+                    data: { stock: { increment: item.quantity } },
+                });
+            }
+        }
 
         res.json({ success: true, message: 'Order deleted successfully' });
     } catch (error: any) {
